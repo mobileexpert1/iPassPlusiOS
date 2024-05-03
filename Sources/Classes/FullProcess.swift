@@ -30,7 +30,7 @@ public class iPassSDKDataObjHandler {
     var isCustom = Bool()
 }
 public protocol iPassSDKDelegate : AnyObject {
-    func getScanCompletionResult(result : String)
+    func getScanCompletionResult(result : String, error : String)
 }
 
 public class iPassSDK {
@@ -45,7 +45,7 @@ public class iPassSDK {
 
     
     
-    public static func aToACustomScan(needLiveness : Bool? = true, userEmail:String, type: Int, controller: UIViewController, userToken:String, appToken:String) async {
+    public static func aToACustomScan(userEmail:String, type: Int, controller: UIViewController, userToken:String, appToken:String) async {
         
         iPassSDKDataObjHandler.shared.authToken = userToken
         iPassSDKDataObjHandler.shared.token = appToken
@@ -54,20 +54,9 @@ public class iPassSDK {
         iPassSDKDataObjHandler.shared.controller = controller
         iPassSDKDataObjHandler.shared.isCustom = true
        
-        if needLiveness == true {
-            /*
-             session id api
-             scanner
-             aws
-             get liveness api
-             save data api
-             get data
-             get liveness data
-             */
             iPassHandler.createSessionApi() { status in
                 if status == true {
                     DispatchQueue.main.async {
-                       
                         DocReader.shared.processParams.multipageProcessing = true
                         DocReader.shared.processParams.authenticityParams?.livenessParams?.checkHolo = false
                         DocReader.shared.processParams.authenticityParams?.livenessParams?.checkOVI = false
@@ -94,6 +83,7 @@ public class iPassSDK {
                                         switch action {
                                         case .complete:
                                             guard results != nil else {
+                                                self.delegate?.getScanCompletionResult(result: "", error: "Document Scanning Error")
                                                 return
                                             }
                                             DispatchQueue.main.async {
@@ -120,7 +110,6 @@ public class iPassSDK {
                                     })
                                 
                                 }
-                                
                                 else {
                                     DispatchQueue.main.async {
                                         iPassSDKDataObjHandler.shared.resultScanData = docResults!
@@ -132,109 +121,22 @@ public class iPassSDK {
                                 
                             }
                             else  if action == .cancel  {
+                                self.delegate?.getScanCompletionResult(result: "", error: "Document Scanning Error")
                             }
                         }
                     }
                 }
+                else {
+                    self.delegate?.getScanCompletionResult(result: "", error: "Liveness Session Error")
+                }
             }
-        }
         
-        else {
-            DispatchQueue.main.async {
-               
-                /*
-                                scanner
-                                save data api
-                                get data api
-                                */
-                
-                DocReader.shared.processParams.multipageProcessing = true
-                DocReader.shared.processParams.authenticityParams?.livenessParams?.checkHolo = false
-                DocReader.shared.processParams.authenticityParams?.livenessParams?.checkOVI = false
-                DocReader.shared.processParams.authenticityParams?.livenessParams?.checkMLI = false
-                
-                let config = DocReader.ScannerConfig(scenario: "")
-                switch type {
-                case 0:
-                    config.scenario = RGL_SCENARIO_FULL_AUTH
-                case 1:
-                    config.scenario = RGL_SCENARIO_CREDIT_CARD
-                case 2:
-                    config.scenario = RGL_SCENARIO_MRZ
-                case 3:
-                    config.scenario = RGL_SCENARIO_BARCODE
-                default:
-                    config.scenario = RGL_SCENARIO_FULL_AUTH
-                }
-                
-                DocReader.shared.showScanner(presenter: controller, config: config) { [self] (action, docResults, error) in
-                    if action == .complete || action == .processTimeout {
-                        if docResults?.chipPage != 0  {
-                            DocReader.shared.startRFIDReader(fromPresenter: controller, completion: {  []  (action, results, error) in
-                                switch action {
-                                case .complete:
-                                    guard results != nil else {
-                                        return
-                                    }
-                                    DispatchQueue.main.async {
-                                        iPassSDKDataObjHandler.shared.resultScanData = results!
-                                        self.saveDataPostApi() { dataStr, _ in
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print(dataStr)
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            self.delegate?.getScanCompletionResult(result: dataStr)
-                                        }
-                                    }
-                                case .cancel:
-                                    guard docResults != nil else {
-                                        return
-                                    }
-                                    DispatchQueue.main.async {
-                                        iPassSDKDataObjHandler.shared.resultScanData = docResults!
-                                        self.saveDataPostApi() { dataStr, _ in
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print(dataStr)
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            self.delegate?.getScanCompletionResult(result: dataStr)
-                                        }
-                                    }
-                                case .error:
-                                    print("Error")
-                                default:
-                                    break
-                                }
-                            })
-                        
-                        }
-                        
-                        else {
-                            DispatchQueue.main.async {
-                                iPassSDKDataObjHandler.shared.resultScanData = docResults!
-                                self.saveDataPostApi() { dataStr, _ in
-                                    print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                    print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                    print(dataStr)
-                                    print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                    print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                    self.delegate?.getScanCompletionResult(result: dataStr)
-                                }
-                            }
-                        }
-                        
-                    }
-                    else  if action == .cancel  {
-                    }
-                }
-            }
-        }
+        
+      
     }
     
     
-    public static func fullProcessScanning(needLiveness : Bool? = true, userEmail:String, type: Int, controller: UIViewController, userToken:String, appToken:String) async {
+    public static func fullProcessScanning(userEmail:String, type: Int, controller: UIViewController, userToken:String, appToken:String) async {
         
         iPassSDKDataObjHandler.shared.authToken = userToken
         iPassSDKDataObjHandler.shared.token = appToken
@@ -243,20 +145,9 @@ public class iPassSDK {
         iPassSDKDataObjHandler.shared.controller = controller
         iPassSDKDataObjHandler.shared.isCustom = false
        
-        if needLiveness == true {
-            /*
-             session id api
-             scanner
-             aws
-             get liveness api
-             save data api
-             get data
-             get liveness data
-             */
             iPassHandler.createSessionApi() { status in
                 if status == true {
                     DispatchQueue.main.async {
-                       
                         DocReader.shared.processParams.multipageProcessing = true
                         DocReader.shared.processParams.authenticityParams?.livenessParams?.checkHolo = false
                         DocReader.shared.processParams.authenticityParams?.livenessParams?.checkOVI = false
@@ -283,6 +174,7 @@ public class iPassSDK {
                                         switch action {
                                         case .complete:
                                             guard results != nil else {
+                                                self.delegate?.getScanCompletionResult(result: "", error: "Document Scanning Error")
                                                 return
                                             }
                                             DispatchQueue.main.async {
@@ -308,8 +200,7 @@ public class iPassSDK {
                                         }
                                     })
                                 
-                                } 
-                                
+                                }
                                 else {
                                     DispatchQueue.main.async {
                                         iPassSDKDataObjHandler.shared.resultScanData = docResults!
@@ -321,106 +212,23 @@ public class iPassSDK {
                                 
                             }
                             else  if action == .cancel  {
+                                self.delegate?.getScanCompletionResult(result: "", error: "Document Scanning Error")
                             }
                         }
                     }
                 }
+                else {
+                    self.delegate?.getScanCompletionResult(result: "", error: "Liveness Session Error")
+                }
             }
-        } 
         
-        else {
-            DispatchQueue.main.async {
-               
-                /*
-                                scanner
-                                save data api
-                                get data api
-                                */
-                
-                DocReader.shared.processParams.multipageProcessing = true
-                DocReader.shared.processParams.authenticityParams?.livenessParams?.checkHolo = false
-                DocReader.shared.processParams.authenticityParams?.livenessParams?.checkOVI = false
-                DocReader.shared.processParams.authenticityParams?.livenessParams?.checkMLI = false
-                
-                let config = DocReader.ScannerConfig(scenario: "")
-                switch type {
-                case 0:
-                    config.scenario = RGL_SCENARIO_FULL_AUTH
-                case 1:
-                    config.scenario = RGL_SCENARIO_CREDIT_CARD
-                case 2:
-                    config.scenario = RGL_SCENARIO_MRZ
-                case 3:
-                    config.scenario = RGL_SCENARIO_BARCODE
-                default:
-                    config.scenario = RGL_SCENARIO_FULL_AUTH
-                }
-                
-                DocReader.shared.showScanner(presenter: controller, config: config) { [self] (action, docResults, error) in
-                    if action == .complete || action == .processTimeout {
-                        if docResults?.chipPage != 0  {
-                            DocReader.shared.startRFIDReader(fromPresenter: controller, completion: {  []  (action, results, error) in
-                                switch action {
-                                case .complete:
-                                    guard results != nil else {
-                                        return
-                                    }
-                                    DispatchQueue.main.async {
-                                        iPassSDKDataObjHandler.shared.resultScanData = results!
-                                        self.saveDataPostApi() { dataStr, _ in
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print(dataStr)
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            self.delegate?.getScanCompletionResult(result: dataStr)
-                                        }
-                                    }
-                                case .cancel:
-                                    guard docResults != nil else {
-                                        return
-                                    }
-                                    DispatchQueue.main.async {
-                                        iPassSDKDataObjHandler.shared.resultScanData = docResults!
-                                        self.saveDataPostApi() { dataStr, _ in
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print(dataStr)
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                            self.delegate?.getScanCompletionResult(result: dataStr)
-                                        }
-                                    }
-                                case .error:
-                                    print("Error")
-                                default:
-                                    break
-                                }
-                            })
-                        
-                        }
-                        
-                        else {
-                            DispatchQueue.main.async {
-                                iPassSDKDataObjHandler.shared.resultScanData = docResults!
-                                self.saveDataPostApi() { dataStr, _ in
-                                    print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                    print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                    print(dataStr)
-                                    print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                    print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                    self.delegate?.getScanCompletionResult(result: dataStr)
-                                }
-                            }
-                        }
-                        
-                    }
-                    else  if action == .cancel  {
-                    }
-                }
-            }
-        }
+        
+      
     }
+
+    
+    
+
     
     public static func startCamera() async {
         await fetchCurrentAuthSession()
@@ -477,6 +285,7 @@ public class iPassSDK {
             
                     if let error = error {
                         print("Error: \(error)")
+                        self.delegate?.getScanCompletionResult(result: "", error: "Liveness result not processed")
                         return
                     }
                  
@@ -484,15 +293,31 @@ public class iPassSDK {
                     if let data = data {
                         if let dataString = String(data: data, encoding: .utf8) {
                             iPassSDKDataObjHandler.shared.livenessResultData = dataString
-                           
-                            self.saveDataPostApi() { dataStr, _ in
-                                print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                print(dataStr)
-                                print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                print("-=-=-=-==--=----get data api response-=-=-=-==--=----")
-                                self.delegate?.getScanCompletionResult(result: dataStr)
+                            
+                            iPassHandler.saveDataPostApi { data, error in
+                                
+                                if(error == nil) {
+                                    iPassHandler.getDataFromAPI() { (data, error) in
+                                        if let error = error {
+                                            print("Error: \(error)")
+                                            self.delegate?.getScanCompletionResult(result: "", error: "Liveness result not processed")
+                                            return
+                                        }
+                                        
+                                        if let data = data {
+                                            if let dataString = String(data: data, encoding: .utf8) {
+                                                print("getDataFromAPI completed")
+                                                self.delegate?.getScanCompletionResult(result: dataString, error: "Liveness result not processed")
+                                                
+                                            } else {
+                                                print("Error converting data to string.")
+                                                self.delegate?.getScanCompletionResult(result: "", error: "Liveness result not processed")
+                                            }
+                                        }
+                                    }
+                                }
                             }
+                           
                             
                             
                         } else {
@@ -594,97 +419,8 @@ public class iPassSDK {
     
     
     
-    private static func saveDataPostApi(completion: @escaping (String, Error?) -> Void){
-        
-        guard let apiURL = URL(string: "https://plusapi.ipass-mena.com/api/v1/ipass/sdk/data/save") else { return }
-        
-        var request = URLRequest(url: apiURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let documentDataJson = convertStringToJSON(iPassSDKDataObjHandler.shared.resultScanData.rawResult)
-            
-        
-        let livenessDataJson = convertStringToJSON(iPassSDKDataObjHandler.shared.livenessResultData)
-        
-        
-        let parameters: [String: Any] = [
-            "email": iPassSDKDataObjHandler.shared.email,
-            "idvData": documentDataJson ?? "",
-            "livenessdata": livenessDataJson ?? "",
-            "randomid": iPassSDKDataObjHandler.shared.sid,
-//            "userToken" : iPassSDKDataObjHandler.shared.authToken,
-//            "appToken" : iPassSDKDataObjHandler.shared.token
-        ]
-        print(parameters)
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: parameters, options: .prettyPrinted)
-        } catch let error {
-            print("Error serializing parameters: \(error.localizedDescription)")
-            return
-        }
-        
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let data = data, let response = response as? HTTPURLResponse, error == nil else {
-                print("Error: \(error?.localizedDescription ?? "Unknown error")")
-                return
-            }
-            
-            let status = response.statusCode
-            print("Response status code: \(status)")
-            
-            if status == 200 {
-                do {
-                    if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                        
-                        iPassHandler.getDataFromAPI() { (data, error) in
-                            if let error = error {
-                                print("Error: \(error)")
-                                return
-                            }
-                            
-                            if let data = data {
-                                if let dataString = String(data: data, encoding: .utf8) {
-                                    print("getDataFromAPI completed")
-                                    
-                                    completion(dataString, nil)
-                                    
-                                } else {
-                                    print("Error converting data to string.")
-                                }
-                            }
-                        }
-                    } else {
-                        print("Failed to parse JSON response")
-                    }
-                } catch let error {
-                    print("Error parsing JSON response: \(error.localizedDescription)")
-                    completion("", error)
-                }
-                
-            } else {
-                print("Unexpected status code: \(status)")
-            }
-        }
-        task.resume()
-    }
-    
-    private static func convertStringToJSON(_ jsonString: String) -> Any? {
-        // Convert the string to Data
-        guard let jsonData = jsonString.data(using: .utf8) else {
-            print("Failed to convert string to data")
-            return nil
-        }
-        
-        // Use JSONSerialization to parse the data into a JSON object (Dictionary or Array)
-        do {
-            let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: [])
-            return jsonObject
-        } catch {
-            print("Error converting JSON data: \(error)")
-            return nil
-        }
-    }
+   
+
     
     
     lazy var onlineProcessing: CustomizationItem = {

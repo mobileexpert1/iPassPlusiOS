@@ -52,6 +52,88 @@ public class iPassHandler {
     
     
     
+    
+    private static func convertStringToJSON(_ jsonString: String) -> Any? {
+        // Convert the string to Data
+        guard let jsonData = jsonString.data(using: .utf8) else {
+            print("Failed to convert string to data")
+            return nil
+        }
+        
+        // Use JSONSerialization to parse the data into a JSON object (Dictionary or Array)
+        do {
+            let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: [])
+            return jsonObject
+        } catch {
+            print("Error converting JSON data: \(error)")
+            return nil
+        }
+    }
+    
+    public static func saveDataPostApi(completion: @escaping (String, Error?) -> Void){
+        
+        guard let apiURL = URL(string: "https://plusapi.ipass-mena.com/api/v1/ipass/sdk/data/save") else { return }
+        
+        var request = URLRequest(url: apiURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let documentDataJson = convertStringToJSON(iPassSDKDataObjHandler.shared.resultScanData.rawResult)
+            
+        
+        let livenessDataJson = convertStringToJSON(iPassSDKDataObjHandler.shared.livenessResultData)
+        
+        
+        let parameters: [String: Any] = [
+            "email": iPassSDKDataObjHandler.shared.email,
+            "idvData": documentDataJson ?? "",
+            "livenessdata": livenessDataJson ?? "",
+            "randomid": iPassSDKDataObjHandler.shared.sid,
+//            "userToken" : iPassSDKDataObjHandler.shared.authToken,
+//            "appToken" : iPassSDKDataObjHandler.shared.token
+        ]
+        print(parameters)
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: parameters, options: .prettyPrinted)
+        } catch let error {
+            print("Error serializing parameters: \(error.localizedDescription)")
+            return
+        }
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let data = data, let response = response as? HTTPURLResponse, error == nil else {
+                print("Error: \(error?.localizedDescription ?? "Unknown error")")
+                completion("", error)
+                return
+            }
+            
+            let status = response.statusCode
+            print("Response status code: \(status)")
+            
+            if status == 200 {
+                do {
+                    if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                        
+                        completion("data", nil)
+                    
+                    } else {
+                        print("Failed to parse JSON response")
+                        completion("", error)
+                    }
+                } catch let error {
+                    print("Error parsing JSON response: \(error.localizedDescription)")
+                    completion("", error)
+                }
+                
+            } else {
+                print("Unexpected status code: \(status)")
+                completion("", error)
+            }
+        }
+        task.resume()
+    }
+    
+    
     public static func LoginAuthAPi(email: String, password: String, completion: @escaping (Bool?, String?) -> Void){
         guard let apiURL = URL(string: "https://plusapi.ipass-mena.com/api/v1/ipass/create/authenticate/login") else { return }
 
@@ -137,6 +219,7 @@ public class iPassHandler {
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data, let response = response as? HTTPURLResponse, error == nil else {
                 print("Error: \(error?.localizedDescription ?? "Unknown error")")
+                completion(false)
                 return
             }
             
@@ -246,6 +329,10 @@ public class iPassHandler {
             }
         }
     }
+    
+    
+    
+    
     
     
     
