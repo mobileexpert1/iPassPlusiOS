@@ -316,6 +316,9 @@ public class iPassSDK {
                                         }
                                     }
                                 }
+                                else {
+                                    self.delegate?.getScanCompletionResult(result: "", error: "Time out")
+                                }
                             }
                            
                             

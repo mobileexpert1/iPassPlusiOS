@@ -97,6 +97,7 @@ public class iPassHandler {
             request.httpBody = try JSONSerialization.data(withJSONObject: parameters, options: .prettyPrinted)
         } catch let error {
             print("Error serializing parameters: \(error.localizedDescription)")
+            completion("", error)
             return
         }
         
