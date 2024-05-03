@@ -466,7 +466,7 @@ public class iPassSDK {
             iPassSDKDataObjHandler.shared.controller.present(hostingController, animated: true)
           
             NotificationCenter.default.addObserver(forName: NSNotification.Name("dismissSwiftUI"), object: nil, queue: nil) { (data) in
-                
+                NotificationCenter.default.removeObserver(self)
                 NotificationCenter.default.removeObserver(self, name: NSNotification.Name("dismissSwiftUI"), object: nil)
 
                 print("userInfo from swift ui class-->> ",data.userInfo?["status"] ?? "no status value")
