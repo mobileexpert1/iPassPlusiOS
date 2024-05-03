@@ -42,99 +42,10 @@ public class iPassSDK {
     public static weak var delegate : iPassSDKDelegate?
     
     
-
     
     
-    public static func aToACustomScan(userEmail:String, type: Int, controller: UIViewController, userToken:String, appToken:String) async {
-        
-        iPassSDKDataObjHandler.shared.authToken = userToken
-        iPassSDKDataObjHandler.shared.token = appToken
-        iPassSDKDataObjHandler.shared.sid = generateRandomTwoDigitNumber()
-        iPassSDKDataObjHandler.shared.email = userEmail
-        iPassSDKDataObjHandler.shared.controller = controller
-        iPassSDKDataObjHandler.shared.isCustom = true
-       
-            iPassHandler.createSessionApi() { status in
-                if status == true {
-                    DispatchQueue.main.async {
-                        DocReader.shared.processParams.multipageProcessing = true
-                        DocReader.shared.processParams.authenticityParams?.livenessParams?.checkHolo = false
-                        DocReader.shared.processParams.authenticityParams?.livenessParams?.checkOVI = false
-                        DocReader.shared.processParams.authenticityParams?.livenessParams?.checkMLI = false
-                        
-                        let config = DocReader.ScannerConfig(scenario: "")
-                        switch type {
-                        case 0:
-                            config.scenario = RGL_SCENARIO_FULL_AUTH
-                        case 1:
-                            config.scenario = RGL_SCENARIO_CREDIT_CARD
-                        case 2:
-                            config.scenario = RGL_SCENARIO_MRZ
-                        case 3:
-                            config.scenario = RGL_SCENARIO_BARCODE
-                        default:
-                            config.scenario = RGL_SCENARIO_FULL_AUTH
-                        }
-                        
-                        DocReader.shared.showScanner(presenter: controller, config: config) { [self] (action, docResults, error) in
-                            if action == .complete || action == .processTimeout {
-                                if docResults?.chipPage != 0  {
-                                    DocReader.shared.startRFIDReader(fromPresenter: controller, completion: {  []  (action, results, error) in
-                                        switch action {
-                                        case .complete:
-                                            guard results != nil else {
-                                                self.delegate?.getScanCompletionResult(result: "", error: "Document Scanning Error")
-                                                return
-                                            }
-                                            DispatchQueue.main.async {
-                                                iPassSDKDataObjHandler.shared.resultScanData = results!
-                                                Task { @MainActor in
-                                                    await startCamera()
-                                                }
-                                            }
-                                        case .cancel:
-                                            guard docResults != nil else {
-                                                return
-                                            }
-                                            DispatchQueue.main.async {
-                                                iPassSDKDataObjHandler.shared.resultScanData = docResults!
-                                                Task { @MainActor in
-                                                    await startCamera()
-                                                }
-                                            }
-                                        case .error:
-                                            print("Error")
-                                        default:
-                                            break
-                                        }
-                                    })
-                                
-                                }
-                                else {
-                                    DispatchQueue.main.async {
-                                        iPassSDKDataObjHandler.shared.resultScanData = docResults!
-                                        Task { @MainActor in
-                                            await startCamera()
-                                        }
-                                    }
-                                }
-                                
-                            }
-                            else  if action == .cancel  {
-                                self.delegate?.getScanCompletionResult(result: "", error: "Document Scanning Error")
-                            }
-                        }
-                    }
-                }
-                else {
-                    self.delegate?.getScanCompletionResult(result: "", error: "Liveness Session Error")
-                }
-            }
-        
-        
-      
-    }
     
+  
     
     public static func fullProcessScanning(userEmail:String, type: Int, controller: UIViewController, userToken:String, appToken:String) async {
         
@@ -143,7 +54,7 @@ public class iPassSDK {
         iPassSDKDataObjHandler.shared.sid = generateRandomTwoDigitNumber()
         iPassSDKDataObjHandler.shared.email = userEmail
         iPassSDKDataObjHandler.shared.controller = controller
-        iPassSDKDataObjHandler.shared.isCustom = false
+        iPassSDKDataObjHandler.shared.isCustom = true
        
             iPassHandler.createSessionApi() { status in
                 if status == true {
