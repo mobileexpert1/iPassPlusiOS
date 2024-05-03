@@ -307,7 +307,7 @@ public class iPassSDK {
                                         if let data = data {
                                             if let dataString = String(data: data, encoding: .utf8) {
                                                 print("getDataFromAPI completed")
-                                                self.delegate?.getScanCompletionResult(result: dataString, error: "Liveness result not processed")
+                                                self.delegate?.getScanCompletionResult(result: dataString, error: "")
                                                 
                                             } else {
                                                 print("Error converting data to string.")
